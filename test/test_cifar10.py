@@ -98,7 +98,7 @@ class TestCifar10(unittest.TestCase):
             total += labels.size(0)
         print(
             'Accuracy(10000 test images, modules\' weight unquantize): %d %%' %
-            (100 * correct / total))
+            (100.0 * correct / total))
 
 
 if __name__ == "__main__":

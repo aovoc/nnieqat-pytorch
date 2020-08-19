@@ -33,12 +33,11 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
 
 * Install nnieqat in docker(easy way to solve environment problems)： 
   ```shell
-  $ docker pull pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel
-  $ nvidia-docker run -it --name nnieqat -v /local-workspace:/workspace pytorch/pytorch:1.6.0-cuda10.1-cudnn7-devel /bin/bash
-  $ docker exec -it nnieqat /bin/bash 
-  $ pip install nnieqat 
+  $ cd docker
+  $ docker build -t nnieqat-image .
 
   ```
+
 <div id="usage"></div>
 
 ## Usage

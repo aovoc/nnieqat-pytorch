@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 import pathlib
+from build_helper import check_cuda_version
+assert(check_cuda_version())
 
 here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / 'README.md').read_text(encoding='utf-8')
