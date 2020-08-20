@@ -8,7 +8,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='nnieqat',
-    version='0.1.0b0',
+    version='0.1.0b1',
     description='A nnie quantization aware training tool on pytorch.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -17,7 +17,7 @@ setup(
     author_email='minqinchen@deepglint.com',
     license='MIT',
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         "Intended Audience :: Science/Research",
         'Intended Audience :: Developers',
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
