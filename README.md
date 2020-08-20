@@ -128,8 +128,6 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
 
 ## Todo
 
-* Multiple GPU training support.
-* Other platforms and accelerators support.
 * Generate quantized model directly.
 
 <div id="reference"></div>  
