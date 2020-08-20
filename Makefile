@@ -4,7 +4,8 @@ build:
 	$(python) setup.py build
 
 upload:
-	$(python) setup.py bdist_wheel
+	$(python) setup.py sdist bdist_wheel
+	twine upload dist/*
 
 clean:
 	@rm -rf build dist nnieqat.egg-info
