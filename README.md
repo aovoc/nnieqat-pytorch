@@ -2,7 +2,7 @@
 
 This is a quantize aware training package for  Neural Network Inference Engine(NNIE) on pytorch, it uses hisilicon quantization library to quantize module's weight and input data as fake fp32 format. To train model which is more friendly to NNIE, just import nnieqat and replace torch.nn default modules with corresponding one.
 
-***Note: only support single gpu training or finetuning now, and you have to import nniepat before torch modules.***
+***Note: import nniepat before torch modules.***
 
 ## Table of Contents
 

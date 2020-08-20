@@ -54,6 +54,7 @@ class QuantAndDeQuantGPU():
                     generate parameter. Just use the param[].
         """
 
+        return tensor
         data_cuda_array = cuda.as_cuda_array(tensor.data.detach())
         data_p = data_cuda_array.device_ctypes_pointer
         self._param.mode = mode
@@ -62,7 +63,6 @@ class QuantAndDeQuantGPU():
             ctypes.byref(self._param), self._stream.handle,
             self._cublas_handle)
         assert ret == 0, "HI_GFPQ_QuantAndDeQuant failed(%d)\n" % (ret)
-        self._stream.synchronize()
         return tensor
 
 
@@ -93,6 +93,8 @@ def unquant_weight(m):
         m.weight.data = m.weight_origin
     except AttributeError:
         pass
+    except TypeError:
+        pass
 
 
 def quant_weight(m):
@@ -105,6 +107,8 @@ def quant_weight(m):
     except AttributeError:
         pass
 
+    except TypeError:
+        pass
 
 def test():
     r""" Test GFPG library QuantAndDeQuantGPU.

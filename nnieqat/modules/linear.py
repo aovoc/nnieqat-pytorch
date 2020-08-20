@@ -50,7 +50,7 @@ class Linear(torch.nn.Linear):
     def forward(self, input: Tensor) -> Tensor:
         input = self.quant_handle(input)
         self.weight_origin = self.weight.clone()
-        self.weight = self.quant_handle(self.weight)
+        self.weight.data = self.quant_handle(self.weight)
         return F.linear(input, self.weight, self.bias)
 
     def _get_name(self):

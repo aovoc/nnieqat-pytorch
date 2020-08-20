@@ -59,7 +59,7 @@ class Conv2d(torch.nn.Conv2d):
     def forward(self, input: Tensor) -> Tensor:
         input = self.quant_handle(input)
         self.weight_origin = self.weight.clone()
-        self.weight = self.quant_handle(self.weight)
+        self.weight.data = self.quant_handle(self.weight)
         ret = super(Conv2d, self).forward(input)
         return ret
 
