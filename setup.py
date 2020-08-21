@@ -8,7 +8,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='nnieqat',
-    version='0.1.0b1',
+    version='0.1.0b2',
     description='A nnie quantization aware training tool on pytorch.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -43,10 +43,16 @@ setup(
     },
     python_requires='>=3.5, <4',
     install_requires=[
-        "torch>=1.0", "numba>=0.42.0", "numpy>=1.18.1"
+        "torch>=1.0",
+        "numba>=0.42.0",
+        "numpy>=1.18.1"
     ],
     extras_require={
         'test': ["torchvision>=0.4"],
+        'docs': [
+            'sphinx==2.4.4',
+            'sphinx_rtd_theme'
+        ]
     },
     test_suite="nnieqat.test.test_cifar10",
 )

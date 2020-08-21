@@ -5,6 +5,7 @@ import sys
 import tempfile
 from distutils import ccompiler
 
+
 def print_warning(*lines):
     print('**************************************************')
     for line in lines:
@@ -29,22 +30,21 @@ minimum_cuda_version = 10010
 maxinum_cuda_version = 10030
 minimum_cudnn_version = 7000
 
+
 def get_compiler_setting():
     nvcc_path = search_on_path(('nvcc', 'nvcc.exe'))
     cuda_path_default = None
     if nvcc_path is None:
-        print_warning('nvcc not in path.',
-                            'Please set path to nvcc.')
+        print_warning('nvcc not in path.', 'Please set path to nvcc.')
     else:
         cuda_path_default = os.path.normpath(
             os.path.join(os.path.dirname(nvcc_path), '..'))
 
     cuda_path = os.environ.get('CUDA_PATH', '')  # Nvidia default on Windows
     if len(cuda_path) > 0 and cuda_path != cuda_path_default:
-        print_warning(
-            'nvcc path != CUDA_PATH',
-            'nvcc path: %s' % cuda_path_default,
-            'CUDA_PATH: %s' % cuda_path)
+        print_warning('nvcc path != CUDA_PATH',
+                      'nvcc path: %s' % cuda_path_default,
+                      'CUDA_PATH: %s' % cuda_path)
 
     if not os.path.exists(cuda_path):
         cuda_path = cuda_path_default
@@ -79,14 +79,16 @@ def check_cuda_version():
     compiler = ccompiler.new_compiler()
     settings = get_compiler_setting()
     try:
-        out = build_and_run(compiler, '''
+        out = build_and_run(compiler,
+                            '''
         #include <cuda.h>
         #include <stdio.h>
         int main(int argc, char* argv[]) {
           printf("%d", CUDA_VERSION);
           return 0;
         }
-        ''', include_dirs=settings['include_dirs'])
+        ''',
+                            include_dirs=settings['include_dirs'])
 
     except Exception as e:
         print_warning('Cannot check CUDA version', str(e))
@@ -94,14 +96,12 @@ def check_cuda_version():
 
     cuda_version = int(out)
     if cuda_version < minimum_cuda_version:
-        print_warning(
-            'CUDA version is too old: %d' % cuda_version,
-            'CUDA v10.1 or CUDA v10.2 is required')
+        print_warning('CUDA version is too old: %d' % cuda_version,
+                      'CUDA v10.1 or CUDA v10.2 is required')
         return False
     if cuda_version > maxinum_cuda_version:
-        print_warning(
-            'CUDA version is too new: %d' % cuda_version,
-            'CUDA v10.1 or CUDA v10.2 is required')
+        print_warning('CUDA version is too new: %d' % cuda_version,
+                      'CUDA v10.1 or CUDA v10.2 is required')
 
     return True
 
@@ -110,14 +110,16 @@ def check_cudnn_version():
     compiler = ccompiler.new_compiler()
     settings = get_compiler_setting()
     try:
-        out = build_and_run(compiler, '''
+        out = build_and_run(compiler,
+                            '''
         #include <cudnn.h>
         #include <stdio.h>
         int main(int argc, char* argv[]) {
           printf("%d", CUDNN_VERSION);
           return 0;
         }
-        ''', include_dirs=settings['include_dirs'])
+        ''',
+                            include_dirs=settings['include_dirs'])
 
     except Exception as e:
         print_warning('Cannot check cuDNN version\n{0}'.format(e))
@@ -125,16 +127,18 @@ def check_cudnn_version():
 
     cudnn_version = int(out)
     if cudnn_version < minimum_cudnn_version:
-        print_warning(
-            'cuDNN version is too old: %d' % cudnn_version,
-            'cuDNN v7 or newer is required')
+        print_warning('cuDNN version is too old: %d' % cudnn_version,
+                      'cuDNN v7 or newer is required')
         return False
 
     return True
 
 
-def build_and_run(compiler, source, libraries=(),
-                  include_dirs=(), library_dirs=()):
+def build_and_run(compiler,
+                  source,
+                  libraries=(),
+                  include_dirs=(),
+                  library_dirs=()):
     temp_dir = tempfile.mkdtemp()
 
     try:
@@ -142,7 +146,8 @@ def build_and_run(compiler, source, libraries=(),
         with open(fname, 'w') as f:
             f.write(source)
 
-        objects = compiler.compile([fname], output_dir=temp_dir,
+        objects = compiler.compile([fname],
+                                   output_dir=temp_dir,
                                    include_dirs=include_dirs)
 
         try:

@@ -42,9 +42,10 @@ class QuantAndDeQuantGPU():
 
     def __call__(self, tensor, mode=0):
         r""" Converts float weights to quantized weights.
+
         Args:
-            tensor: input data
-            mode: GFPQ mode for param.
+            - tensor: input data
+            - mode: GFPQ mode for param
                 GFPQ_MODE_INIT(0): There is no valid parameter in param[].
                     Generate the parameter and filled in param[].
                 GFPQ_MODE_UPDATE(1): There is parameter in param[]. Generate
@@ -72,9 +73,11 @@ _QUANT_HANDLE = QuantAndDeQuantGPU()
 def freeze_bn(m, freeze_bn_affine=True):
     """Freeze batch normalization.
         reference: https://arxiv.org/abs/1806.08342
+
+
     Args:
-        m (nn.module): torch module.
-        freeze_bn_affine (bool, optional): Freeze affine scale and
+        - m (nn.module): torch module
+        - freeze_bn_affine (bool, optional): Freeze affine scale and
         translation factor or not. Defaults: True.
     """
     import torch
@@ -87,6 +90,9 @@ def freeze_bn(m, freeze_bn_affine=True):
 
 def unquant_weight(m):
     """ unquantize weight before update weight, avoid training turbulence.
+
+    Args:
+        - m (nn.module): torch module.
     """
     global _QUANT_HANDLE
     try:
@@ -99,6 +105,9 @@ def unquant_weight(m):
 
 def quant_weight(m):
     """ quant weight manually.
+
+    Args:
+        - m (nn.module): torch module.
     """
     global _QUANT_HANDLE
     try:

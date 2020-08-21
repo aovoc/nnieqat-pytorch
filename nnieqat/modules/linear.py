@@ -5,13 +5,16 @@ import torch.nn.functional as F
 
 
 class Linear(torch.nn.Linear):
-    r"""This is the quantized version of :class:`~torch.nn.Linear`.
+    r"""A quantized version of :class:`~torch.nn.Linear`.
+
+    Args and shape is the same as original version.
+
     Applies a linear transformation to the incoming data: :math:`y = xA^T + b`
 
-    Args: Same as torch.nn.Linear
-        in_features: size of each input sample
-        out_features: size of each output sample
-        bias: If set to ``False``, the layer will not learn an additive bias.
+    Args:
+        - in_features: size of each input sample
+        - out_features: size of each output sample
+        - bias: If set to ``False``, the layer will not learn an additive bias.
             Default: ``True``
 
     Shape:
@@ -56,15 +59,20 @@ class Linear(torch.nn.Linear):
     def _get_name(self):
         return 'QuantizedLinear'
 
+
 class Bilinear(torch.nn.Bilinear):
-    r"""Applies a bilinear transformation to the incoming data:
+    r"""A quantized version of :class:`~torch.nn.Bilinear`.
+
+    Args and shape is the same as original version.
+
+    Applies a bilinear transformation to the incoming data:
     :math:`y = x_1^T A x_2 + b`
 
-    Args: Same as torch.nn.Bilinear
-        in1_features: size of each first input sample
-        in2_features: size of each second input sample
-        out_features: size of each output sample
-        bias: If set to False, the layer will not learn an additive bias.
+    Args:
+        - in1_features: size of each first input sample
+        - in2_features: size of each second input sample
+        - out_features: size of each output sample
+        - bias: If set to False, the layer will not learn an additive bias.
             Default: ``True``
 
     Shape:
