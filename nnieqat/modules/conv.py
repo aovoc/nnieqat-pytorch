@@ -533,7 +533,7 @@ class ConvTranspose1d(torch.nn.ConvTranspose1d):
         - stride (int or tuple, optional): Stride of the convolution. Default: 1
         - padding (int or tuple, optional): ``dilation * (kernel_size - 1) - padding`` zero-padding
             will be added to both sides of the input. Default: 0
-        - output_padding (int or tuple, optional): Additional size added to one side 
+        - output_padding (int or tuple, optional): Additional size added to one side
             of the output shape. Default: 0
         - groups (int, optional): Number of blocked connections from input channels to output channels. Default: 1
         - bias (bool, optional): If ``True``, adds a learnable bias to the output. Default: ``True``

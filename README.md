@@ -2,7 +2,6 @@
 
 This is a quantize aware training package for  Neural Network Inference Engine(NNIE) on pytorch, it uses hisilicon quantization library to quantize module's weight and input data as fake fp32 format. To train model which is more friendly to NNIE, just import nnieqat and replace torch.nn default modules with corresponding one.
 
-***Note: import nniepat before torch modules.***
 
 ## Table of Contents
 
@@ -23,7 +22,7 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
 * Dependencies:
   * python >= 3.5, < 4
   * llvmlite >= 0.31.0
-  * pytorch >= 1.0
+  * pytorch >= 1.5
   * numba >= 0.42.0
   * numpy >= 1.18.1
 * Install nnieqat via pypi:  
@@ -47,6 +46,8 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
   * torch.nn.modules.linear -> nnieqat.modules.linear
   * torch.nn.modules.pooling -> nnieqat.modules.pooling
 
+  The quantization optimized  layer quantize and dequantize weight and data with HiSVP GFPQ library in forward() process.
+
   ```python
   from nnieqat.modules import convert_layers
   ...
@@ -56,14 +57,16 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
   ...
   ```
 
-* Freeze bn after a few epochs of training
+* merge bn weight into conv and freeze bn
+
+  suggest finetuning from a well-trained model, merge_freeze_bn at beginning. do it after a few epochs of training otherwise.
 
   ```python
-  from nnieqat.gpu.quantize import freeze_bn
+  from nnieqat.gpu.quantize import merge_freeze_bn
   ...
   ...
-      if epoch > 2:
-        net.apply(freeze_bn)
+      model.train()
+      model = merge_freeze_bn(model)  # change bn to eval() mode during training
   ...
   ```
 
@@ -73,20 +76,20 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
   from nnieqat.gpu.quantize import unquant_weight
   ...
   ...
-      net.apply(unquant_weight)
+      model.apply(unquant_weight)  # using original weight while updating
       optimizer.step()
   ...
   ```
 
-* Dump weight quantized model
+* Dump weight optimized model
 
   ```python
-  from nnieqat.gpu.quantize import quant_weight, unquant_weight
+  from nnieqat.gpu.quantize import quant_dequant_weight, unquant_weight
   ...
   ...
-      net.apply(quant_weight)
+      model.apply(quant_dequant_weight)
       save_checkpoint(...)
-      net.apply(unquant_weight)
+      model.apply(unquant_weight)
   ...
   ```
 
@@ -155,5 +158,3 @@ HiSVP 量化库使用指南
 [trt_quant]: https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf
 
 [distillingNN]: https://arxiv.org/abs/1503.02531
-
-[apprentice]: https://arxiv.org/abs/1711.05852

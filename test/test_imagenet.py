@@ -1,6 +1,3 @@
-import nnieqat
-from nnieqat.gpu.quantize import quant_weight, unquant_weight, freeze_bn
-from nnieqat.modules import convert_layers
 import argparse
 import os
 import random
@@ -20,6 +17,10 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
+import nnieqat
+from nnieqat.gpu.quantize import quant_dequant_weight, unquant_weight, merge_freeze_bn
+from nnieqat.modules import convert_layers
+
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -140,8 +141,8 @@ def main_worker(gpu, ngpus_per_node, args):
         model = models.__dict__[args.arch]()
 
     model = convert_layers(model)
+
     print(model)
-    model.apply(freeze_bn)
     if not torch.cuda.is_available():
         print('using CPU, this will be slow')
     elif args.distributed:
@@ -260,13 +261,13 @@ def main_worker(gpu, ngpus_per_node, args):
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
             # dump weight quantized model.
-            model.apply(quant_weight)
+            model.apply(quant_dequant_weight)
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
                 'best_acc1': best_acc1,
-                'optimizer' : optimizer.state_dict(),
+                'optimizer': optimizer.state_dict(),
             }, is_best)
             model.apply(unquant_weight)
 
@@ -284,9 +285,10 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
     # switch to train mode
     model.train()
-
+    model = merge_freeze_bn(model)
     end = time.time()
-    for i, (images, target) in enumerate(train_loader):
+
+    for i, (images, target) in enumerate(train_loader): 
         # measure data loading time
         data_time.update(time.time() - end)
 
