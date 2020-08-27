@@ -145,9 +145,9 @@ HiSVP 量化库使用指南
 
 [Distilling the Knowledge in a Neural Network][distillingNN]
 
-[cifar10_qat]: https://gitlab.deepglint.com/chenMQ/nnieqat-pytorch/-/blob/master/test/test_cifar10.py
+[cifar10_qat]: https://github.com/aovoc/nnieqat-pytorch/blob/master/test/test_cifar10.py
 
-[imagenet_qat]: https://gitlab.deepglint.com/chenMQ/nnieqat-pytorch/-/blob/master/test/test_imagenet.py
+[imagenet_qat]: https://github.com/aovoc/nnieqat-pytorch/blob/master/test/test_imagenet.py
 
 [imagenet_example]: https://github.com/pytorch/examples/blob/master/imagenet/main.py
 
