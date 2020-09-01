@@ -2,6 +2,7 @@
 
 This is a quantize aware training package for  Neural Network Inference Engine(NNIE) on pytorch, it uses hisilicon quantization library to quantize module's weight and input data as fake fp32 format. To train model which is more friendly to NNIE, just import nnieqat and replace torch.nn default modules with corresponding one.
 
+***Note: import nniepat before torch modules, do not support multi-gpu training.***
 
 ## Table of Contents
 
@@ -41,19 +42,16 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
 
 ## Usage
 
-* Replace default module with NNIE quantization optimized one. include:
-  * torch.nn.modules.conv -> nnieqat.modules.conv
-  * torch.nn.modules.linear -> nnieqat.modules.linear
-  * torch.nn.modules.pooling -> nnieqat.modules.pooling
+* add quantization hook.
 
-  The quantization optimized  layer quantize and dequantize weight and data with HiSVP GFPQ library in forward() process.
+  quantize and dequantize weight and data with HiSVP GFPQ library in forward() process.
 
   ```python
-  from nnieqat.modules import convert_layers
+
+  from nnieqat import quant_dequant_weight, unquant_weight, merge_freeze_bn, register_quantization_hook
   ...
   ...
-    model = convert_layers(model)
-    print(model)  # Quantized layers have "Quantized" prefix.
+    register_quantization_hook(model)
   ...
   ```
 
@@ -62,18 +60,18 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
   suggest finetuning from a well-trained model, merge_freeze_bn at beginning. do it after a few epochs of training otherwise.
 
   ```python
-  from nnieqat.gpu.quantize import merge_freeze_bn
+  from nnieqat import quant_dequant_weight, unquant_weight, merge_freeze_bn, register_quantization_hook
   ...
   ...
       model.train()
-      model = merge_freeze_bn(model)  # change bn to eval() mode during training
+      model = merge_freeze_bn(model)  #it will change bn to eval() mode during training
   ...
   ```
 
 * Unquantize weight before update it
 
   ```python
-  from nnieqat.gpu.quantize import unquant_weight
+  from nnieqat import quant_dequant_weight, unquant_weight, merge_freeze_bn, register_quantization_hook
   ...
   ...
       model.apply(unquant_weight)  # using original weight while updating
@@ -84,7 +82,7 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
 * Dump weight optimized model
 
   ```python
-  from nnieqat.gpu.quantize import quant_dequant_weight, unquant_weight
+  from nnieqat import quant_dequant_weight, unquant_weight, merge_freeze_bn, register_quantization_hook
   ...
   ...
       model.apply(quant_dequant_weight)
@@ -130,6 +128,8 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
 <div id="Todo"></div>
 
 ## Todo
+
+* Multiple GPU training support.
 
 * Generate quantized model directly.
 

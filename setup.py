@@ -8,7 +8,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='nnieqat',
-    version='0.1.0b3',
+    version='0.1.0b4',
     description='A nnie quantization aware training tool on pytorch.',
     long_description=long_description,
     long_description_content_type='text/markdown',

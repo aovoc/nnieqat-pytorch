@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+from nnieqat import quant_dequant_weight, unquant_weight, merge_freeze_bn, register_quantization_hook
+import unittest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -6,10 +8,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
-import nnieqat
-from nnieqat.gpu.quantize import quant_dequant_weight, unquant_weight, merge_freeze_bn
-from nnieqat.modules import convert_layers
-import unittest
+
 
 
 class Net(nn.Module):
@@ -57,8 +56,7 @@ class TestCifar10(unittest.TestCase):
         dataiter = iter(trainloader)
         images, labels = dataiter.next()
         net = Net()
-        net = convert_layers(net)
-        print(net)
+        register_quantization_hook(net)
         net.cuda()
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)

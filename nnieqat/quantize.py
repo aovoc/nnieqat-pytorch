@@ -24,10 +24,9 @@ class _types:
 class QuantAndDeQuantGPU():
     r"""quantize and dequantize data with GFPG library.
     """
-
     def __init__(self,
                  libquant_path=dirname(abspath(__file__)) +
-                 "/lib/libgfpq_gpu.so",
+                 "/gpu/lib/libgfpq_gpu.so",
                  libcublas_path="libcublas.so",
                  bit_width=8):
         self._libquant = ctypes.cdll.LoadLibrary(libquant_path)
@@ -56,7 +55,6 @@ class QuantAndDeQuantGPU():
                     generate parameter. Just use the param[].
         """
 
-        return tensor
         data_cuda_array = cuda.as_cuda_array(tensor.data.detach())
         data_p = data_cuda_array.device_ctypes_pointer
         self._param.mode = mode
@@ -71,7 +69,7 @@ class QuantAndDeQuantGPU():
 _QUANT_HANDLE = QuantAndDeQuantGPU()
 
 
-def fuse_conv_bn_weights(conv_w, conv_b, bn_rm, bn_rv, bn_eps, bn_w, bn_b):
+def _fuse_conv_bn_weights(conv_w, conv_b, bn_rm, bn_rv, bn_eps, bn_w, bn_b):
     """ fuse convolution and batch norm's weight.
 
     Args:
@@ -99,14 +97,14 @@ def fuse_conv_bn_weights(conv_w, conv_b, bn_rm, bn_rv, bn_eps, bn_w, bn_b):
     return torch.nn.Parameter(conv_w), torch.nn.Parameter(conv_b)
 
 
-def fuse_conv_bn(conv, bn):
+def _fuse_conv_bn(conv, bn):
     conv.weight, conv.bias = \
-        fuse_conv_bn_weights(conv.weight, conv.bias,
+        _fuse_conv_bn_weights(conv.weight, conv.bias,
                              bn.running_mean, bn.running_var, bn.eps, bn.weight, bn.bias)
     return conv
 
 
-def fuse_modules(model):
+def _fuse_modules(model):
     r"""Fuses a list of modules into a single module
 
     Fuses only the following sequence of modules:
@@ -129,25 +127,31 @@ def fuse_modules(model):
     conv_name = None
 
     for name, child in children:
-        if isinstance(child, torch.nn.BatchNorm1d) or isinstance(child, torch.nn.BatchNorm2d) or isinstance(child, torch.nn.BatchNorm3d):
-            conv_module = fuse_conv_bn(conv_module, child)
+        if isinstance(child, torch.nn.BatchNorm1d) or isinstance(
+                child, torch.nn.BatchNorm2d) or isinstance(
+                    child, torch.nn.BatchNorm3d):
+            conv_module = _fuse_conv_bn(conv_module, child)
             model._modules[conv_name] = conv_module
             child.eval()
-            child.running_mean = child.running_mean.new_full(child.running_mean.shape, 0)
-            child.running_var = child.running_var.new_full(child.running_var.shape, 1)
+            child.running_mean = child.running_mean.new_full(
+                child.running_mean.shape, 0)
+            child.running_var = child.running_var.new_full(
+                child.running_var.shape, 1)
             if child.weight is not None:
-                child.weight.data = child.weight.data.new_full(child.weight.shape, 1)
+                child.weight.data = child.weight.data.new_full(
+                    child.weight.shape, 1)
             if child.bias is not None:
                 child.bias.data = child.bias.data.new_full(child.bias.shape, 0)
             child.track_running_stats = False
             child.momentum = 0
             child.eps = 0
             conv_module = None
-        elif isinstance(child, torch.nn.Conv2d) or isinstance(child, torch.nn.Conv3d):
+        elif isinstance(child, torch.nn.Conv2d) or isinstance(
+                child, torch.nn.Conv3d):
             conv_module = child
             conv_name = name
         else:
-            fuse_modules(child)
+            _fuse_modules(child)
     return model
 
 
@@ -162,7 +166,8 @@ def freeze_bn(m, freeze_bn_affine=True):
         translation factor or not. Defaults: True.
     """
     import torch
-    if isinstance(m, torch.nn.BatchNorm1d) or isinstance(m, torch.nn.BatchNorm2d) or isinstance(m, torch.nn.BatchNorm3d):
+    if isinstance(m, torch.nn.BatchNorm1d) or isinstance(
+            m, torch.nn.BatchNorm2d) or isinstance(m, torch.nn.BatchNorm3d):
         m.eval()
         if freeze_bn_affine:
             m.weight.requires_grad = False
@@ -177,8 +182,8 @@ def merge_freeze_bn(model):
 
     Returns:
         [nn.module]: model.
-    """   
-    model = fuse_modules(model)
+    """
+    model = _fuse_modules(model)
     model.apply(freeze_bn)
     return model
 
@@ -207,12 +212,56 @@ def quant_dequant_weight(m):
     global _QUANT_HANDLE
     try:
         m.weight = _QUANT_HANDLE(m.weight)
-
     except AttributeError:
         pass
-
     except TypeError:
         pass
+
+
+def _quantizing_activation(module, input, output):
+    global _QUANT_HANDLE
+    # print("quantizing activation.")
+    # print(output[0][0][0])
+    output = _QUANT_HANDLE(output)
+    # print(output[0][0][0])
+
+
+def _quantizing_weight(module, input):
+    global _QUANT_HANDLE
+    # print("quantizing weight.")
+    # print(module.weight[0][0][0])
+    module.weight_origin = module.weight.clone()
+    module.weight = _QUANT_HANDLE(module.weight)
+    # print(module.weight[0][0][0])
+
+
+def register_quantization_hook(model):
+    """register quantization hook for model.
+
+    Args:
+        model (:class:`Module`): Module.
+
+    Returns:
+        Module: self
+    """
+
+    #  weight quantizing.
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    for name, module in model._modules.items():
+        if len(list(module.children())) > 0:
+            register_quantization_hook(module)
+        else:
+            if hasattr(module, "weight") and module.weight is not None:
+                module.register_forward_pre_hook(_quantizing_weight)
+                logger.info("Quantizing weight of " + str(module))
+
+            module.register_forward_hook(_quantizing_activation)
+            logger.info("Quantizing activation of " + str(module))
+
+    return model
 
 
 def test():

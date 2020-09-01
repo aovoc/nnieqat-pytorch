@@ -5,6 +5,7 @@ import shutil
 import time
 import warnings
 
+from nnieqat import quant_dequant_weight, unquant_weight, merge_freeze_bn, register_quantization_hook
 import torch
 import torch.nn as nn
 import torch.nn.parallel
@@ -17,10 +18,6 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
-import nnieqat
-from nnieqat.gpu.quantize import quant_dequant_weight, unquant_weight, merge_freeze_bn
-from nnieqat.modules import convert_layers
-
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -140,9 +137,8 @@ def main_worker(gpu, ngpus_per_node, args):
         print("=> creating model '{}'".format(args.arch))
         model = models.__dict__[args.arch]()
 
-    model = convert_layers(model)
+    register_quantization_hook(model)
 
-    print(model)
     if not torch.cuda.is_available():
         print('using CPU, this will be slow')
     elif args.distributed:
