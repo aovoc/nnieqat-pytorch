@@ -267,9 +267,7 @@ def quant_dequant_weight(m):
 
 
 def _quantizing_activation(module, input, output):
-    if isinstance(module, torch.nn.ReLU) or isinstance(
-            module,
-            torch.nn.Hardswish) and not isinstance(module, torch.nn.ELU):
+    if isinstance(module, (torch.nn.ReLU, torch.nn.Hardswish, torch.nn.ELU)):
         global _QUANT_HANDLE
         global _USE_GFPQ_QUANT_LIB
         quant_handle = _QUANT_HANDLE
@@ -329,13 +327,13 @@ def register_quantization_hook(model,
             if quant_weight and hasattr(
                     module,
                     "weight") and module.weight is not None and not isinstance(
-                        module, torch.nn.BatchNorm1d) and not isinstance(
-                            module, torch.nn.BatchNorm2d) and not isinstance(
-                                module, torch.nn.BatchNorm3d):
+                        module, (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d,
+                                 torch.nn.BatchNorm3d)):
                 module.register_forward_pre_hook(_quantizing_weight)
                 logger.info("Quantizing weight of %s", str(module))
 
-            if quant_activation:
+            if quant_activation and isinstance(
+                    module, (torch.nn.ReLU, torch.nn.Hardswish, torch.nn.ELU)):
                 module.register_forward_hook(_quantizing_activation)
                 logger.info("Quantizing activation of %s", str(module))
 
