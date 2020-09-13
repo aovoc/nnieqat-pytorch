@@ -1,14 +1,19 @@
 from setuptools import setup, find_packages
 import pathlib
+from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+
 from build_helper import check_cuda_version
 assert(check_cuda_version())
+
+import os
+os.system('make -j%d' % os.cpu_count())
 
 here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='nnieqat',
-    version='0.1.0b4',
+    version='0.1.0b5',
     description='A nnie quantization aware training tool on pytorch.',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -54,5 +59,16 @@ setup(
             'sphinx_rtd_theme'
         ]
     },
+    ext_modules=[
+        CUDAExtension(
+            name="quant_impl",
+            sources=[
+                "./src/fake_quantize.cpp",
+            ],
+            libraries=['quant_impl'],
+            library_dirs=['obj'],
+        )
+    ],
+    cmdclass={'build_ext': BuildExtension},
     test_suite="nnieqat.test.test_cifar10",
 )

@@ -2,10 +2,11 @@
 """
 import sys
 try:
-    from .quantize import quant_dequant_weight, unquant_weight, freeze_bn, merge_freeze_bn, register_quantization_hook, test
+    from .quantize import quant_dequant_weight, unquant_weight, freeze_bn, \
+        merge_freeze_bn, register_quantization_hook, test
 except:
     raise
 __all__ = [
-    "QuantAndDeQuantGPU", "test", "quant_dequant_weight", "unquant_weight", "freeze_bn", "merge_freeze_bn", "register_quantization_hook"
-]
+    "quant_dequant_weight", "unquant_weight", "freeze_bn", "merge_freeze_bn", \
+        "register_quantization_hook", "test"]
 test()

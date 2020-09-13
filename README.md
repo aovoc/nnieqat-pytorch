@@ -1,8 +1,7 @@
 # nnieqat-pytorch
 
-This is a quantize aware training package for  Neural Network Inference Engine(NNIE) on pytorch, it uses hisilicon quantization library to quantize module's weight and input data as fake fp32 format. To train model which is more friendly to NNIE, just import nnieqat and replace torch.nn default modules with corresponding one.
+Nnieqat is a quantize aware training package for  Neural Network Inference Engine(NNIE) on pytorch, it uses hisilicon quantization library to quantize module's weight and activation as fake fp32 format.
 
-***Note: import nniepat before torch modules, do not support multi-gpu training.***
 
 ## Table of Contents
 
@@ -31,11 +30,17 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
   $ pip install nnieqat
   ```
 
-* Install nnieqat in docker(easy way to solve environment problems)： 
+* Install nnieqat in docker(easy way to solve environment problems)：
   ```shell
   $ cd docker
   $ docker build -t nnieqat-image .
 
+  ```
+* Install nnieqat via repo：
+  ```shell
+  $ git clone https://github.com/aovoc/nnieqat-pytorch
+  $ cd nnieqat-pytorch
+  $ make install
   ```
 
 <div id="usage"></div>
@@ -128,8 +133,6 @@ This is a quantize aware training package for  Neural Network Inference Engine(N
 <div id="Todo"></div>
 
 ## Todo
-
-* Multiple GPU training support.
 
 * Generate quantized model directly.
 

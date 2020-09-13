@@ -6,8 +6,12 @@ import ctypes
 import datetime
 import logging
 from os.path import abspath, dirname
+import torch
 import numpy as np
 from numba import cuda
+from quant_impl import fake_quantize
+
+_USE_GFPQ_QUANT_LIB = (torch.cuda.device_count() <= 1)
 
 
 class GFPQParamSt(ctypes.Structure):
@@ -28,17 +32,20 @@ class QuantAndDeQuantGPU():
                  libquant_path=dirname(abspath(__file__)) +
                  "/gpu/lib/libgfpq_gpu.so",
                  libcublas_path="libcublas.so",
-                 bit_width=8):
-        self._libquant = ctypes.cdll.LoadLibrary(libquant_path)
-        self._libcublas = ctypes.cdll.LoadLibrary(libcublas_path)
-        self._libcublas.cublasCreate_v2.restype = int
-        self._libcublas.cublasCreate_v2.argtypes = [ctypes.c_void_p]
-        self._cublas_handle = _types.handle()
-        self._libcublas.cublasCreate_v2(ctypes.byref(self._cublas_handle))
+                 bit_width=8,
+                 param_mode=0):
+        global _USE_GFPQ_QUANT_LIB
         self._bit_width = bit_width
-        self._param = GFPQParamSt()
-        self._stream = cuda.stream()
-        self._param.mode = 0
+        if _USE_GFPQ_QUANT_LIB:
+            self._libquant = ctypes.cdll.LoadLibrary(libquant_path)
+            self._libcublas = ctypes.cdll.LoadLibrary(libcublas_path)
+            self._libcublas.cublasCreate_v2.restype = int
+            self._libcublas.cublasCreate_v2.argtypes = [ctypes.c_void_p]
+            self._cublas_handle = _types.handle()
+            self._libcublas.cublasCreate_v2(ctypes.byref(self._cublas_handle))
+            self._param = GFPQParamSt()
+            self._stream = cuda.stream()
+            self._param.mode = param_mode
 
     def __call__(self, tensor, mode=0):
         r""" Converts float weights to quantized weights.
@@ -55,14 +62,53 @@ class QuantAndDeQuantGPU():
                     generate parameter. Just use the param[].
         """
 
-        data_cuda_array = cuda.as_cuda_array(tensor.data.detach())
-        data_p = data_cuda_array.device_ctypes_pointer
-        self._param.mode = mode
-        ret = self._libquant.HI_GFPQ_QuantAndDeQuant_GPU_PY(
-            data_p, data_cuda_array.size, self._bit_width,
-            ctypes.byref(self._param), self._stream.handle,
-            self._cublas_handle)
-        assert ret == 0, "HI_GFPQ_QuantAndDeQuant failed(%d)\n" % (ret)
+        global _USE_GFPQ_QUANT_LIB
+        if _USE_GFPQ_QUANT_LIB:
+            try:
+                if isinstance(tensor, tuple):
+                    for tensor_item in tensor:
+                        data_cuda_array = cuda.as_cuda_array(
+                            tensor_item.data.detach())
+                        data_p = data_cuda_array.device_ctypes_pointer
+                        self._param.mode = mode
+                        ret = self._libquant.HI_GFPQ_QuantAndDeQuant_GPU_PY(
+                            data_p, data_cuda_array.size, self._bit_width,
+                            ctypes.byref(self._param), self._stream.handle,
+                            self._cublas_handle)
+                else:
+                    data_cuda_array = cuda.as_cuda_array(tensor.data.detach())
+                    data_p = data_cuda_array.device_ctypes_pointer
+                    self._param.mode = mode
+                    ret = self._libquant.HI_GFPQ_QuantAndDeQuant_GPU_PY(
+                        data_p, data_cuda_array.size, self._bit_width,
+                        ctypes.byref(self._param), self._stream.handle,
+                        self._cublas_handle)
+            except:
+                pass
+            finally:
+                if ret != 0:
+                    _USE_GFPQ_QUANT_LIB = False
+                    logger = logging.getLogger(__name__)
+                    logger.setLevel(logging.WARNING)
+                    logger.warning(
+                        """Failed to quantize data with default HiSVP GFPQ library, 
+                                      Use implemented quantization algorithm instead."""
+                    )
+                    if isinstance(tensor, tuple):
+                        for tensor_item in tensor:
+                            tensor_item.data = fake_quantize(
+                                tensor_item.data.detach(), self._bit_width)
+                    else:
+                        tensor.data = fake_quantize(tensor.data.detach(),
+                                                    self._bit_width)
+        else:
+            if isinstance(tensor, tuple):
+                for tensor_item in tensor:
+                    tensor_item.data = fake_quantize(tensor_item.data.detach(),
+                                                     self._bit_width)
+            else:
+                tensor.data = fake_quantize(tensor.data.detach(),
+                                            self._bit_width)
         return tensor
 
 
@@ -85,7 +131,7 @@ def _fuse_conv_bn_weights(conv_w, conv_b, bn_rm, bn_rv, bn_eps, bn_w, bn_b):
         conv_w(torch.nn.Parameter): fused convolution weight.
         conv_b(torch.nn.Parameter): fused convllution bias.
     """
-    import torch
+
     if conv_b is None:
         conv_b = bn_rm.new_zeros(bn_rm.shape)
     bn_var_rsqrt = torch.rsqrt(bn_rv + bn_eps)
@@ -119,17 +165,13 @@ def _fuse_modules(model):
         model with fused modules.
 
     """
-
-    import torch
-
     children = list(model.named_children())
     conv_module = None
     conv_name = None
 
     for name, child in children:
-        if isinstance(child, torch.nn.BatchNorm1d) or isinstance(
-                child, torch.nn.BatchNorm2d) or isinstance(
-                    child, torch.nn.BatchNorm3d):
+        if isinstance(child, (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d,
+                              torch.nn.BatchNorm3d)):
             conv_module = _fuse_conv_bn(conv_module, child)
             model._modules[conv_name] = conv_module
             child.eval()
@@ -146,8 +188,7 @@ def _fuse_modules(model):
             child.momentum = 0
             child.eps = 0
             conv_module = None
-        elif isinstance(child, torch.nn.Conv2d) or isinstance(
-                child, torch.nn.Conv3d):
+        elif isinstance(child, (torch.nn.Conv2d, torch.nn.Conv3d)):
             conv_module = child
             conv_name = name
         else:
@@ -165,9 +206,11 @@ def freeze_bn(m, freeze_bn_affine=True):
         - freeze_bn_affine (bool, optional): Freeze affine scale and
         translation factor or not. Defaults: True.
     """
-    import torch
-    if isinstance(m, torch.nn.BatchNorm1d) or isinstance(
-            m, torch.nn.BatchNorm2d) or isinstance(m, torch.nn.BatchNorm3d):
+
+    if isinstance(
+            m,
+        (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d, torch.nn.BatchNorm3d)):
+
         m.eval()
         if freeze_bn_affine:
             m.weight.requires_grad = False
@@ -194,9 +237,9 @@ def unquant_weight(m):
     Args:
         - m (nn.module): torch module.
     """
-    global _QUANT_HANDLE
     try:
-        m.weight.data = m.weight_origin
+        if hasattr(m, "weight_origin") and m.weight is not None:
+            m.weight.data = m.weight_origin
     except AttributeError:
         pass
     except TypeError:
@@ -210,8 +253,13 @@ def quant_dequant_weight(m):
         - m (nn.module): torch module.
     """
     global _QUANT_HANDLE
+    global _USE_GFPQ_QUANT_LIB
+    quant_handle = _QUANT_HANDLE
+    if not _USE_GFPQ_QUANT_LIB:
+        quant_handle = QuantAndDeQuantGPU()
     try:
-        m.weight = _QUANT_HANDLE(m.weight)
+        if hasattr(m, "weight_origin") and m.weight is not None:
+            m.weight.data = quant_handle(m.weight)
     except AttributeError:
         pass
     except TypeError:
@@ -219,23 +267,48 @@ def quant_dequant_weight(m):
 
 
 def _quantizing_activation(module, input, output):
+    if isinstance(module, torch.nn.ReLU) or isinstance(
+            module,
+            torch.nn.Hardswish) and not isinstance(module, torch.nn.ELU):
+        global _QUANT_HANDLE
+        global _USE_GFPQ_QUANT_LIB
+        quant_handle = _QUANT_HANDLE
+        if not _USE_GFPQ_QUANT_LIB:
+            quant_handle = QuantAndDeQuantGPU()
+        # print("quantizing activation.")
+        # print(output[0][0][0])
+        output.data = quant_handle(output)
+        # print(output[0][0][0])
+
+
+def _quantizing_data(module, input):
     global _QUANT_HANDLE
-    # print("quantizing activation.")
-    # print(output[0][0][0])
-    output = _QUANT_HANDLE(output)
-    # print(output[0][0][0])
+    global _USE_GFPQ_QUANT_LIB
+    quant_handle = _QUANT_HANDLE
+    if not _USE_GFPQ_QUANT_LIB:
+        quant_handle = QuantAndDeQuantGPU()
+    # print("quantizing data.")
+    # print(input[0][0][0])
+    input = quant_handle(input)
+    # print(input[0][0][0])
 
 
 def _quantizing_weight(module, input):
     global _QUANT_HANDLE
+    global _USE_GFPQ_QUANT_LIB
+    quant_handle = _QUANT_HANDLE
+    if not _USE_GFPQ_QUANT_LIB:
+        quant_handle = QuantAndDeQuantGPU()
     # print("quantizing weight.")
     # print(module.weight[0][0][0])
     module.weight_origin = module.weight.clone()
-    module.weight = _QUANT_HANDLE(module.weight)
+    module.weight.data = quant_handle(module.weight)
     # print(module.weight[0][0][0])
 
 
-def register_quantization_hook(model):
+def register_quantization_hook(model,
+                               quant_weight=True,
+                               quant_activation=True):
     """register quantization hook for model.
 
     Args:
@@ -246,20 +319,25 @@ def register_quantization_hook(model):
     """
 
     #  weight quantizing.
-    import logging
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
-    for name, module in model._modules.items():
+    for _, module in model._modules.items():
         if len(list(module.children())) > 0:
-            register_quantization_hook(module)
+            register_quantization_hook(module, quant_weight, quant_activation)
         else:
-            if hasattr(module, "weight") and module.weight is not None:
+            if quant_weight and hasattr(
+                    module,
+                    "weight") and module.weight is not None and not isinstance(
+                        module, torch.nn.BatchNorm1d) and not isinstance(
+                            module, torch.nn.BatchNorm2d) and not isinstance(
+                                module, torch.nn.BatchNorm3d):
                 module.register_forward_pre_hook(_quantizing_weight)
-                logger.info("Quantizing weight of " + str(module))
+                logger.info("Quantizing weight of %s", str(module))
 
-            module.register_forward_hook(_quantizing_activation)
-            logger.info("Quantizing activation of " + str(module))
+            if quant_activation:
+                module.register_forward_hook(_quantizing_activation)
+                logger.info("Quantizing activation of %s", str(module))
 
     return model
 
@@ -268,10 +346,9 @@ def test():
     r""" Test GFPG library QuantAndDeQuantGPU.
     """
     quant_handle = QuantAndDeQuantGPU()
-    import torch
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
-    tensor = torch.Tensor(np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])).cuda()
+    tensor = torch.Tensor(np.array([-9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])).cuda()
     logging.info("Origin Data: ")
     logging.info(tensor)
 
@@ -283,8 +360,9 @@ def test():
     logging.info(quant_tensor)
 
     data_expected = np.array([
-        0.0000000000, 1.0000000000, 2.0000000000, 2.9536523819, 4.0000000000,
-        4.9674310684, 5.9073047638, 7.0250086784, 8.0000000000, 8.7240619659
+        -8.7240619659, 0.0000000000, 1.0000000000, 2.0000000000, 2.9536523819,
+        4.0000000000, 4.9674310684, 5.9073047638, 7.0250086784, 8.0000000000,
+        8.7240619659
     ])
 
     logging.info("Data expected:  ")
