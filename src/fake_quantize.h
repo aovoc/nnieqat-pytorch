@@ -18,6 +18,3 @@ __global__ void fake_quantize_kernel_cuda(float* __restrict__ a,
                                             float* o, int size,
                                             float* max_entry,
                                             int bit_width=8);
-
-
-

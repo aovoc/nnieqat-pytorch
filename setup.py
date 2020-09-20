@@ -53,7 +53,10 @@ setup(
         "numpy>=1.18.1"
     ],
     extras_require={
-        'test': ["torchvision>=0.4"],
+        'test': ["torchvision>=0.4",
+                 "nose",
+                 "ddt"
+                 ],
         'docs': [
             'sphinx==2.4.4',
             'sphinx_rtd_theme'

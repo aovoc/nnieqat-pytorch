@@ -1,5 +1,5 @@
 # Uncomment for debugging
-# DEBUG := 1
+DEBUG := 1
 # Pretty build
 # Q ?= @
 
@@ -19,7 +19,7 @@ INCLUDE_DIRS += $(PYTORCH_INCLUDES)
 # BLAS_INCLUDE := /path/to/your/blas
 # BLAS_LIB := /path/to/your/blas
 
-SRC_DIR := ./src
+SRC_DIR := ./
 OBJ_DIR := ./obj
 CPP_SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 CU_SRCS := $(wildcard $(SRC_DIR)/*.cu)
@@ -85,7 +85,7 @@ upload:
 	#twine upload dist/*
 
 clean:
-	$(RM) -rf build dist nnieqat.egg-info
+	$(RM) -rf build dist nnieqat.egg-info obj
 
 test:
 	nosetests -s tests/test_quant_impl.py --nologcapture

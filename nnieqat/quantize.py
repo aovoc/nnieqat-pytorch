@@ -91,8 +91,8 @@ class QuantAndDeQuantGPU():
                     logger = logging.getLogger(__name__)
                     logger.setLevel(logging.WARNING)
                     logger.warning(
-                        """Failed to quantize data with default HiSVP GFPQ library, 
-                                      Use implemented quantization algorithm instead."""
+                        """Failed to quantize data with default HiSVP GFPQ library,
+                        Use implemented quantization algorithm instead."""
                     )
                     if isinstance(tensor, tuple):
                         for tensor_item in tensor:
