@@ -98,6 +98,8 @@ Nnieqat is a quantize aware training package for  Neural Network Inference Engin
   ...
   ```
 
+* Using EMA with caution(Not recommended).
+
 <div id="examples"></div>
 
 ## Code Examples
