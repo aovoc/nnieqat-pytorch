@@ -5,12 +5,14 @@ Nnieqat is a quantize aware training package for  Neural Network Inference Engin
 
 ## Table of Contents
 
-1. [Installation](#installation)
-2. [Usage](#usage)
-3. [Code Examples](#examples)
-4. [Results](#results)
-5. [Todo](#Todo)
-6. [Reference](#reference)
+- [nnieqat-pytorch](#nnieqat-pytorch)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Code Examples](#code-examples)
+  - [Results](#results)
+  - [Todo](#todo)
+  - [Reference](#reference)
 
 
 <div id="installation"></div>  
@@ -128,6 +130,43 @@ Nnieqat is a quantize aware training package for  Neural Network Inference Engin
     | nnie_lr_e-3_ft | 0.56600   | 0.56328   | 0.56612 |
     | lr_e-4_ft  | 0.57884   | 0.57502   | 0.57542 |
     | nnie_lr_e-4_ft | 0.57834   | 0.57524   | 0.57730 |  
+
+
+* coco
+
+net: simplified  yolov5s
+
+train 300 epoches, hi3559 test result:   
+
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.338   
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.540   
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.357   
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.187   
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.377   
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.445   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.284   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.484   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.542   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.357   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.595   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.679   
+
+
+finetune 20 epoches, hi3559 test result:   
+
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.339   
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.539   
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.360   
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.191   
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.378   
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.446   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.285   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.485   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.544   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.361   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.596   
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.683   
+
 
 
 <div id="Todo"></div>

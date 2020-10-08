@@ -92,8 +92,7 @@ class QuantAndDeQuantGPU():
                     logger.setLevel(logging.WARNING)
                     logger.warning(
                         """Failed to quantize data with default HiSVP GFPQ library,
-                        Use implemented quantization algorithm instead."""
-                    )
+                        Use implemented quantization algorithm instead.""")
                     if isinstance(tensor, tuple):
                         for tensor_item in tensor:
                             tensor_item.data = fake_quantize(
@@ -172,21 +171,23 @@ def _fuse_modules(model):
     for name, child in children:
         if isinstance(child, (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d,
                               torch.nn.BatchNorm3d)):
-            conv_module = _fuse_conv_bn(conv_module, child)
-            model._modules[conv_name] = conv_module
-            child.eval()
-            child.running_mean = child.running_mean.new_full(
-                child.running_mean.shape, 0)
-            child.running_var = child.running_var.new_full(
-                child.running_var.shape, 1)
-            if child.weight is not None:
-                child.weight.data = child.weight.data.new_full(
-                    child.weight.shape, 1)
-            if child.bias is not None:
-                child.bias.data = child.bias.data.new_full(child.bias.shape, 0)
-            child.track_running_stats = False
-            child.momentum = 0
-            child.eps = 0
+            if isinstance(conv_module, (torch.nn.Conv2d, torch.nn.Conv3d)):
+                conv_module = _fuse_conv_bn(conv_module, child)
+                model._modules[conv_name] = conv_module
+                child.eval()
+                child.running_mean = child.running_mean.new_full(
+                    child.running_mean.shape, 0)
+                child.running_var = child.running_var.new_full(
+                    child.running_var.shape, 1)
+                if child.weight is not None:
+                    child.weight.data = child.weight.data.new_full(
+                        child.weight.shape, 1)
+                if child.bias is not None:
+                    child.bias.data = child.bias.data.new_full(
+                        child.bias.shape, 0)
+                child.track_running_stats = False
+                child.momentum = 0
+                child.eps = 0
             conv_module = None
         elif isinstance(child, (torch.nn.Conv2d, torch.nn.Conv3d)):
             conv_module = child
@@ -267,7 +268,9 @@ def quant_dequant_weight(m):
 
 
 def _quantizing_activation(module, input, output):
-    if isinstance(module, (torch.nn.ReLU, torch.nn.Hardswish, torch.nn.ELU)):
+    if isinstance(
+            module,
+        (torch.nn.ReLU, torch.nn.ELU, torch.nn.LeakyReLU, torch.nn.PReLU)):
         global _QUANT_HANDLE
         global _USE_GFPQ_QUANT_LIB
         quant_handle = _QUANT_HANDLE
@@ -275,7 +278,9 @@ def _quantizing_activation(module, input, output):
             quant_handle = QuantAndDeQuantGPU()
         # print("quantizing activation.")
         # print(output[0][0][0])
-        output.data = quant_handle(output)
+        output_type = output.dtype
+        output.data = quant_handle(output.float())
+        output = output.to(output_type)
         # print(output[0][0][0])
 
 
@@ -287,7 +292,17 @@ def _quantizing_data(module, input):
         quant_handle = QuantAndDeQuantGPU()
     # print("quantizing data.")
     # print(input[0][0][0])
-    input = quant_handle(input)
+    # print("quantizing data.")
+    # print(input[0][0][0])
+    # input_type = input.dtype
+    if isinstance(input, tuple):
+        for item in input:
+            item_type = item.dtype
+            item = quant_handle(item.float())
+            item.to(item_type)
+    else:
+        input = quant_handle(input.float())
+    # input = input.to(input_type)
     # print(input[0][0][0])
 
 
@@ -306,7 +321,8 @@ def _quantizing_weight(module, input):
 
 def register_quantization_hook(model,
                                quant_weight=True,
-                               quant_activation=True):
+                               quant_activation=True,
+                               quant_data=True):
     """register quantization hook for model.
 
     Args:
@@ -329,6 +345,9 @@ def register_quantization_hook(model,
                     "weight") and module.weight is not None and not isinstance(
                         module, (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d,
                                  torch.nn.BatchNorm3d)):
+                if quant_data:
+                    module.register_forward_pre_hook(_quantizing_data)
+                    logger.info("Quantizing input data of %s", str(module))
                 module.register_forward_pre_hook(_quantizing_weight)
                 logger.info("Quantizing weight of %s", str(module))
 
