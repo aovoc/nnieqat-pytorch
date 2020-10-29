@@ -89,6 +89,7 @@ clean:
 
 test:
 	nosetests -s tests/test_quant_impl.py --nologcapture
+	nosetests -s tests/test_merge_freeze_bn.py --nologcapture
 
 lint:
 	pylint nnieqat --reports=n

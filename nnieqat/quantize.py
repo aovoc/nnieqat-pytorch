@@ -96,17 +96,17 @@ class QuantAndDeQuantGPU():
                     if isinstance(tensor, tuple):
                         for tensor_item in tensor:
                             tensor_item.data = fake_quantize(
-                                tensor_item.data.detach(), self._bit_width)
+                                tensor_item.data.detach().clone(), self._bit_width)
                     else:
-                        tensor.data = fake_quantize(tensor.data.detach(),
+                        tensor.data = fake_quantize(tensor.data.detach().clone(),
                                                     self._bit_width)
         else:
             if isinstance(tensor, tuple):
                 for tensor_item in tensor:
-                    tensor_item.data = fake_quantize(tensor_item.data.detach(),
+                    tensor_item.data = fake_quantize(tensor_item.data.detach().clone(),
                                                      self._bit_width)
             else:
-                tensor.data = fake_quantize(tensor.data.detach(),
+                tensor.data = fake_quantize(tensor.data.detach().clone(),
                                             self._bit_width)
         return tensor
 
@@ -240,7 +240,7 @@ def unquant_weight(m):
     """
     try:
         if hasattr(m, "weight_origin") and m.weight is not None:
-            m.weight.data = m.weight_origin
+            m.weight.data.copy_(m.weight_origin.data)
     except AttributeError:
         pass
     except TypeError:
@@ -260,7 +260,8 @@ def quant_dequant_weight(m):
         quant_handle = QuantAndDeQuantGPU()
     try:
         if hasattr(m, "weight_origin") and m.weight is not None:
-            m.weight.data = quant_handle(m.weight)
+            m.weight_origin.data.copy_(m.weight.data)
+            m.weight.data = quant_handle(m.weight.data.detach().clone())
     except AttributeError:
         pass
     except TypeError:
@@ -279,7 +280,10 @@ def _quantizing_activation(module, input, output):
         # print("quantizing activation.")
         # print(output[0][0][0])
         output_type = output.dtype
-        output.data = quant_handle(output.float())
+        module.activation_max_value = torch.max(torch.max(torch.abs(output)), module.activation_max_value.to(output_type))
+        # print(module.activation_max_value)
+        tensor_t = torch.cat((output, torch.ones(output[0].shape).cuda().unsqueeze(0) * module.activation_max_value))
+        output.data = quant_handle(tensor_t.float())[:-1]
         output = output.to(output_type)
         # print(output[0][0][0])
 
@@ -314,15 +318,15 @@ def _quantizing_weight(module, input):
         quant_handle = QuantAndDeQuantGPU()
     # print("quantizing weight.")
     # print(module.weight[0][0][0])
-    module.weight_origin = module.weight.clone()
-    module.weight.data = quant_handle(module.weight)
+    module.weight_origin.data.copy_(module.weight.data)
+    module.weight.data = quant_handle(module.weight.data.detach().clone())
     # print(module.weight[0][0][0])
 
 
 def register_quantization_hook(model,
                                quant_weight=True,
                                quant_activation=True,
-                               quant_data=True):
+                               quant_data=False):
     """register quantization hook for model.
 
     Args:
@@ -345,6 +349,7 @@ def register_quantization_hook(model,
                     "weight") and module.weight is not None and not isinstance(
                         module, (torch.nn.BatchNorm1d, torch.nn.BatchNorm2d,
                                  torch.nn.BatchNorm3d)):
+                module.register_buffer('weight_origin', module.weight.detach().clone())
                 if quant_data:
                     module.register_forward_pre_hook(_quantizing_data)
                     logger.info("Quantizing input data of %s", str(module))
@@ -352,7 +357,8 @@ def register_quantization_hook(model,
                 logger.info("Quantizing weight of %s", str(module))
 
             if quant_activation and isinstance(
-                    module, (torch.nn.ReLU, torch.nn.Hardswish, torch.nn.ELU)):
+                    module, (torch.nn.ReLU, torch.nn.ELU, torch.nn.LeakyReLU, torch.nn.PReLU)):
+                module.register_buffer("activation_max_value", torch.tensor(0, dtype=torch.float).cuda())
                 module.register_forward_hook(_quantizing_activation)
                 logger.info("Quantizing activation of %s", str(module))
 
