@@ -79,6 +79,11 @@ best_acc1 = 0
 
 
 def main():
+    """
+    Main function.
+
+    Args:
+    """
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -114,6 +119,13 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
+    """
+    The main function.
+
+    Args:
+        gpu: (todo): write your description
+        ngpus_per_node: (int): write your description
+    """
     global best_acc1
     args.gpu = gpu
 
@@ -269,6 +281,16 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
+    """
+    Training function.
+
+    Args:
+        train_loader: (todo): write your description
+        model: (todo): write your description
+        criterion: (int): write your description
+        optimizer: (todo): write your description
+        epoch: (int): write your description
+    """
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -318,6 +340,14 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
 
 def validate(val_loader, model, criterion, args):
+    """
+    Validate the model.
+
+    Args:
+        val_loader: (todo): write your description
+        model: (str): write your description
+        criterion: (str): write your description
+    """
     batch_time = AverageMeter('Time', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
     top1 = AverageMeter('Acc@1', ':6.2f')
@@ -363,6 +393,14 @@ def validate(val_loader, model, criterion, args):
 
 
 def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+    """
+    Save checkpoint to disk to disk.
+
+    Args:
+        state: (todo): write your description
+        is_best: (bool): write your description
+        filename: (str): write your description
+    """
     torch.save(state, filename)
     if is_best:
         shutil.copyfile(filename, 'model_best.pth.tar')
@@ -371,39 +409,90 @@ def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self, name, fmt=':f'):
+        """
+        Reset the named field.
+
+        Args:
+            self: (todo): write your description
+            name: (str): write your description
+            fmt: (str): write your description
+        """
         self.name = name
         self.fmt = fmt
         self.reset()
 
     def reset(self):
+        """
+        Reset the state.
+
+        Args:
+            self: (todo): write your description
+        """
         self.val = 0
         self.avg = 0
         self.sum = 0
         self.count = 0
 
     def update(self, val, n=1):
+        """
+        Updates the value
+
+        Args:
+            self: (todo): write your description
+            val: (float): write your description
+            n: (array): write your description
+        """
         self.val = val
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
 
     def __str__(self):
+        """
+        Return a string representation of this instance.
+
+        Args:
+            self: (todo): write your description
+        """
         fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
         return fmtstr.format(**self.__dict__)
 
 
 class ProgressMeter(object):
     def __init__(self, num_batches, meters, prefix=""):
+        """
+        Initialize batch batches.
+
+        Args:
+            self: (todo): write your description
+            num_batches: (int): write your description
+            meters: (todo): write your description
+            prefix: (str): write your description
+        """
         self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
         self.meters = meters
         self.prefix = prefix
 
     def display(self, batch):
+        """
+        Prints a list of reports.
+
+        Args:
+            self: (todo): write your description
+            batch: (todo): write your description
+        """
         entries = [self.prefix + self.batch_fmtstr.format(batch)]
         entries += [str(meter) for meter in self.meters]
         print('\t'.join(entries))
 
     def _get_batch_fmtstr(self, num_batches):
+        """
+        Returns a human - readable string representation of the batches.
+
+        Args:
+            self: (todo): write your description
+            num_batches: (int): write your description
+        """
         num_digits = len(str(num_batches // 1))
         fmt = '{:' + str(num_digits) + 'd}'
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'

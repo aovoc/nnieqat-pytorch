@@ -13,10 +13,37 @@ class TestMergeFreezeBNImpl(unittest.TestCase):
                 stride,
                 conv_layer=nn.Conv2d,
                 norm_layer=nn.BatchNorm2d):
+        """
+        Computes convolution layer.
+
+        Args:
+            inp: (todo): write your description
+            oup: (array): write your description
+            stride: (int): write your description
+            conv_layer: (todo): write your description
+            nn: (todo): write your description
+            Conv2d: (todo): write your description
+            norm_layer: (todo): write your description
+            nn: (todo): write your description
+            BatchNorm2d: (todo): write your description
+        """
         return nn.Sequential(conv_layer(inp, oup, 3, stride, 1, bias=False),
                              norm_layer(oup))
 
     def conv_1x1_bn(inp, oup, conv_layer=nn.Conv2d, norm_layer=nn.BatchNorm2d):
+        """
+        1x1x1 batch.
+
+        Args:
+            inp: (todo): write your description
+            oup: (array): write your description
+            conv_layer: (todo): write your description
+            nn: (todo): write your description
+            Conv2d: (todo): write your description
+            norm_layer: (todo): write your description
+            nn: (todo): write your description
+            BatchNorm2d: (todo): write your description
+        """
         return nn.Sequential(conv_layer(inp, oup, 1, 1, 0, bias=False),
                              norm_layer(oup))
 
@@ -25,6 +52,13 @@ class TestMergeFreezeBNImpl(unittest.TestCase):
 
     @data(data1, data2)
     def test(self, m):
+        """
+        Freeze the model
+
+        Args:
+            self: (todo): write your description
+            m: (todo): write your description
+        """
         input = torch.randn(1, 3, 10, 10)
         m.eval()
         output_0 = m(input)
