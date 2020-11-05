@@ -7,6 +7,12 @@ from distutils import ccompiler
 
 
 def print_warning(*lines):
+    """
+    Print warning messages.
+
+    Args:
+        lines: (todo): write your description
+    """
     print('**************************************************')
     for line in lines:
         print('*** WARNING: %s' % line)
@@ -14,10 +20,22 @@ def print_warning(*lines):
 
 
 def get_path(key):
+    """
+    Get the value from the environment variable.
+
+    Args:
+        key: (str): write your description
+    """
     return os.environ.get(key, '').split(os.pathsep)
 
 
 def search_on_path(filenames):
+    """
+    Search on_on_path.
+
+    Args:
+        filenames: (str): write your description
+    """
     for p in get_path('PATH'):
         for filename in filenames:
             full = os.path.join(p, filename)
@@ -32,6 +50,11 @@ minimum_cudnn_version = 7000
 
 
 def get_compiler_setting():
+    """
+    Get the path to the compiler.
+
+    Args:
+    """
     nvcc_path = search_on_path(('nvcc', 'nvcc.exe'))
     cuda_path_default = None
     if nvcc_path is None:
@@ -76,6 +99,11 @@ def get_compiler_setting():
 
 
 def check_cuda_version():
+    """
+    Determine if the cuda version is available.
+
+    Args:
+    """
     compiler = ccompiler.new_compiler()
     settings = get_compiler_setting()
     try:
@@ -107,6 +135,11 @@ def check_cuda_version():
 
 
 def check_cudnn_version():
+    """
+    Checks if the cudnn version is installed.
+
+    Args:
+    """
     compiler = ccompiler.new_compiler()
     settings = get_compiler_setting()
     try:
@@ -139,6 +172,16 @@ def build_and_run(compiler,
                   libraries=(),
                   include_dirs=(),
                   library_dirs=()):
+    """
+    Builds and compile code and runs the build.
+
+    Args:
+        compiler: (str): write your description
+        source: (str): write your description
+        libraries: (todo): write your description
+        include_dirs: (str): write your description
+        library_dirs: (str): write your description
+    """
     temp_dir = tempfile.mkdtemp()
 
     try:

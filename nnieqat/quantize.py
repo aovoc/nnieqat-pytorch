@@ -34,6 +34,19 @@ class QuantAndDeQuantGPU():
                  libcublas_path="libcublas.so",
                  bit_width=8,
                  param_mode=0):
+        """
+        Initialize libcub library.
+
+        Args:
+            self: (todo): write your description
+            libquant_path: (str): write your description
+            dirname: (str): write your description
+            abspath: (str): write your description
+            __file__: (str): write your description
+            libcublas_path: (str): write your description
+            bit_width: (int): write your description
+            param_mode: (str): write your description
+        """
         global _USE_GFPQ_QUANT_LIB
         self._bit_width = bit_width
         if _USE_GFPQ_QUANT_LIB:
@@ -143,6 +156,13 @@ def _fuse_conv_bn_weights(conv_w, conv_b, bn_rm, bn_rv, bn_eps, bn_w, bn_b):
 
 
 def _fuse_conv_bn(conv, bn):
+    """
+    Fuse convolution.
+
+    Args:
+        conv: (todo): write your description
+        bn: (todo): write your description
+    """
     conv.weight, conv.bias = \
         _fuse_conv_bn_weights(conv.weight, conv.bias,
                              bn.running_mean, bn.running_var, bn.eps, bn.weight, bn.bias)
@@ -269,6 +289,14 @@ def quant_dequant_weight(m):
 
 
 def _quantizing_activation(module, input, output):
+    """
+    Quantizing activation activation.
+
+    Args:
+        module: (todo): write your description
+        input: (array): write your description
+        output: (todo): write your description
+    """
     if isinstance(
             module,
         (torch.nn.ReLU, torch.nn.ELU, torch.nn.LeakyReLU, torch.nn.PReLU)):
@@ -289,6 +317,13 @@ def _quantizing_activation(module, input, output):
 
 
 def _quantizing_data(module, input):
+    """
+    Quantizing the quantizing quantizing a module.
+
+    Args:
+        module: (todo): write your description
+        input: (todo): write your description
+    """
     global _QUANT_HANDLE
     global _USE_GFPQ_QUANT_LIB
     quant_handle = _QUANT_HANDLE
@@ -311,6 +346,13 @@ def _quantizing_data(module, input):
 
 
 def _quantizing_weight(module, input):
+    """
+    Adds the weight of a module.
+
+    Args:
+        module: (todo): write your description
+        input: (array): write your description
+    """
     global _QUANT_HANDLE
     global _USE_GFPQ_QUANT_LIB
     quant_handle = _QUANT_HANDLE

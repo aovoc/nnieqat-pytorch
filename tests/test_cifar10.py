@@ -13,6 +13,12 @@ import torchvision.transforms as transforms
 
 class Net(nn.Module):
     def __init__(self):
+        """
+        Initialize the network.
+
+        Args:
+            self: (todo): write your description
+        """
         super(Net, self).__init__()
         self.conv1 = torch.nn.Conv2d(3, 6, 5)
         self.pool = torch.nn.MaxPool2d(2, 2)
@@ -22,6 +28,13 @@ class Net(nn.Module):
         self.fc3 = torch.nn.Linear(84, 10)
 
     def forward(self, x):
+        """
+        Forward computation.
+
+        Args:
+            self: (todo): write your description
+            x: (todo): write your description
+        """
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
         x = x.view(-1, 16 * 5 * 5)
@@ -32,6 +45,12 @@ class Net(nn.Module):
 
 class TestCifar10(unittest.TestCase):
     def test(self):
+        """
+        Perform the test.
+
+        Args:
+            self: (todo): write your description
+        """
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
