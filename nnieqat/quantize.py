@@ -280,7 +280,7 @@ def _quantizing_activation(module, input, output):
         # print("quantizing activation.")
         # print(output[0][0][0])
         output_type = output.dtype
-        module.activation_max_value = torch.max(torch.max(torch.abs(output)), module.activation_max_value.to(output_type))
+        module.activation_max_value = torch.max(torch.max(torch.abs(output.detach())), module.activation_max_value.to(output_type))
         # print(module.activation_max_value)
         tensor_t = torch.cat((output, torch.ones(output[0].shape).cuda().unsqueeze(0) * module.activation_max_value))
         output.data = quant_handle(tensor_t.float())[:-1]
